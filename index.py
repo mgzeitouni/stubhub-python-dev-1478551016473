@@ -22,7 +22,6 @@ import pdb
 
 
 app = Flask(__name__)
-api = Api(app)
 
 
 username = USERNAME
