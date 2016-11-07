@@ -1,9 +1,4 @@
+---
 applications:
-- path: .
+- name: bluemix-python-flask-sample
   memory: 128M
-  instances: 1
-  domain: mybluemix.net
-  name: stubhub-python-dev
-  host: stubhub-python-dev
-  disk_quota: 1024M
-  buildpack: python_buildpack
