@@ -59,6 +59,32 @@ def error_1(param):
 def error_2(param):
 	return construct_error(2, "Unsuccessful call to StubHub - Invalid %s" %param)
 
+@app.route('/get-team-games', methods= ['GET'])
+def get_team_games():
+
+	arg = 'teamName'
+
+	# First check if team was passed in
+	if request.args.get(arg):
+
+		event_id = request.args.get(arg)
+
+		# Get games
+		try:
+			ids_dates, ids_opponents = stubhub.get_team_games('New York Mets')
+			response_text = {"num_games":len(ids_dates),"dates":ids_dates, "opponents": ids_opponents}
+			response= jsonify(response_text)
+
+
+		except Exception as e:
+			response = error_2(arg)
+
+	else:
+
+		response = error_1(arg)
+
+	return response
+
 
 @app.route('/getevent', methods = ['GET'])
 def getevent():

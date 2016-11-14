@@ -18,6 +18,7 @@ import logging
 #import dateutil.parser as dparser
 #from django.utils.timezone import utc
 import pdb
+import dateutil.parser as dparser
 #from gunicorn.http.wsgi import Response
 #try:
 #    import http.client as http_client
@@ -48,7 +49,7 @@ def req(full_url, headers, params, req_type='GET', use_cache=True):
    cache_key = str(full_url) + str(headers) + str(params) + str(req_type)
    if use_cache and (cache_key in cache):
        return cache[cache_key]
-   print "Request:", full_url, headers, params, req_type
+  # print "Request:", full_url, headers, params, req_type
    response = None
    
    if req_type == 'GET':
@@ -166,8 +167,42 @@ class Stubhub():
         #performer_id = get_performer_id(event_id)
         
         params = {'name': team, 'parking': False, 'start': 0, 'limit':500}
-        return self.send_req('/search/catalog/events/v3', token_type='APP',req_type='GET', params=params).json()
+        response = self.send_req('/search/catalog/events/v3', token_type='APP',req_type='GET', params=params).json()
+        #pdb.set_trace()
+        #print team
+        #print response
+       
+        events = response['events']
+        
+        #pdb.set_trace()
+        #print "%s: %s" %(team, events)
+        
+        ids =[]
+        venues = []
+        i=1
+        for event in events:
+            try:
+                #print "%s: %s" %(i,event['venue']['name'])
+                venues.append(event['venue']['name'])
+                i+=1
+            except:
+                #print event
+                print "Index out of range"
+        home_field = max(set(venues), key=venues.count)
 
+     #   print home_field
+        ids_dates = {}
+        ids_opponents = {}
+        for event in events:
+            if event['venue']['name'] == home_field:
+                
+                ids_dates[event['id']] = dparser.parse(event['eventDateLocal'])
+                #pdb.set_trace()
+                try:
+                    ids_opponents[event['id']] = event['groupingsCollection'][2]['name'].replace(" Road Games", "")
+                except:
+                    print "Couldn't get opponent"
+        return ids_dates, ids_opponents
     def check_date(self, event_id):
     
         # Get XML of event details
@@ -448,11 +483,12 @@ if __name__ == '__main__':
         user_id = Stubhub.get_user_id(basic_auth=basic_auth, username=username, password=password)
        # print user_token
         stubhub = Stubhub(app_token=app_token, user_token=user_token, user_id=user_id)
-        print stubhub.user_id
-        print stubhub.user_token
-        x= stubhub.get_sales()
-        print x
-        print 'hi'
+       # print stubhub.user_id
+      #  print stubhub.user_token
+        #x= stubhub.get_sales()
+      #  print x
+       # ids_dates, ids_opponents = stubhub.get_team_games('New York Mets')
+      #  print ids_dates
        # print stubhub.get_event_inventory(9445062)
 
        # print stubhub.get_other_listing(1196917513)
