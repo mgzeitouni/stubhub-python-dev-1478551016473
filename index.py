@@ -67,11 +67,11 @@ def get_team_games():
 	# First check if team was passed in
 	if request.args.get(arg):
 
-		event_id = request.args.get(arg)
+		teamName = request.args.get(arg)
 
 		# Get games
 		try:
-			ids_dates, ids_opponents = stubhub.get_team_games('New York Mets')
+			ids_dates, ids_opponents = stubhub.get_team_games(teamName)
 			response_text = {"num_games":len(ids_dates),"dates":ids_dates, "opponents": ids_opponents}
 			response= jsonify(response_text)
 

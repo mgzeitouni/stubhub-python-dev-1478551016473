@@ -169,8 +169,8 @@ class Stubhub():
         params = {'name': team, 'parking': False, 'start': 0, 'limit':500}
         response = self.send_req('/search/catalog/events/v3', token_type='APP',req_type='GET', params=params).json()
         #pdb.set_trace()
-        #print team
-        #print response
+        print team
+        print response
        
         events = response['events']
         
@@ -190,7 +190,7 @@ class Stubhub():
                 print "Index out of range"
         home_field = max(set(venues), key=venues.count)
 
-     #   print home_field
+       # print home_field
         ids_dates = {}
         ids_opponents = {}
         for event in events:
