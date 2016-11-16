@@ -19,9 +19,11 @@ import json
 from stubhub_functions import Stubhub
 from stubhub_functions import *
 import pdb
+from flask_cors import CORS
 
 
 app = Flask(__name__)
+CORS(app)
 
 
 username = USERNAME
