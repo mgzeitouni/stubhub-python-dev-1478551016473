@@ -29,12 +29,19 @@ CORS(app)
 username = USERNAME
 password = PASSWORD
 basic_auth = BASIC_AUTH
-app_token = APP_TOKEN
+#app_token = APP_TOKEN
 
-app_token = Stubhub.get_app_token(app_token=app_token)
-user_token = Stubhub.get_user_token(basic_auth=basic_auth, username=username, password=password)
-user_id = Stubhub.get_user_id(basic_auth=basic_auth, username=username, password=password)
-stubhub = Stubhub(app_token=app_token, user_token=user_token, user_id=user_id)
+app_token_prod = Stubhub.get_app_token(app_token=APP_TOKEN_PROD)
+user_token_prod = Stubhub.get_user_token(basic_auth=BASIC_AUTH_PROD, username=username, password=password, env='production')
+user_id_prod = Stubhub.get_user_id(basic_auth=BASIC_AUTH_PROD, username=username, password=password, env='production')
+
+app_token_sand = Stubhub.get_app_token(app_token=APP_TOKEN_SAND)
+user_token_sand = Stubhub.get_user_token(basic_auth=BASIC_AUTH_SAND, username=username, password=password, env='sandbox')
+user_id_sand = Stubhub.get_user_id(basic_auth=BASIC_AUTH_SAND, username=username, password=password, env='sandbox')
+
+
+stubhub_prod = Stubhub(app_token=app_token_prod, user_token=user_token_prod, user_id=user_id_prod, env = 'production')
+stubhub_sand = Stubhub(app_token=app_token_prod, user_token=user_token_prod, user_id=user_id_prod, env = 'sandbox')
 
 #parser = reqparse.RequestParser()
 
@@ -61,29 +68,52 @@ def error_1(param):
 def error_2(param):
 	return construct_error(2, "Unsuccessful call to StubHub - Invalid %s" %param)
 
+def stubhhub_object(env):
+	stubhub = stubhub_prod if env=='production' else  stubhub_sand
+
+@app.route('/test-global', methods= ['GET'])
+def test_global():
+	#global x
+	before = "X Before: %s"%x.attribute
+	x.attribute = request.args.get('newx')
+	after = "X After: %s"%x.attribute
+	result = jsonify({"before":before, "after": after})
+	return result
+
 @app.route('/get-team-games', methods= ['GET'])
 def get_team_games():
 
-	arg = 'teamName'
+	arg1 = 'teamName'
+	arg2 = 'env'
 
 	# First check if team was passed in
-	if request.args.get(arg):
+	if request.args.get(arg1):
 
-		teamName = request.args.get(arg)
+		teamName = request.args.get(arg1)
 
-		# Get games
-		try:
-			ids_dates, ids_opponents = stubhub.get_team_games(teamName)
-			response_text = {"num_games":len(ids_dates),"dates":ids_dates, "opponents": ids_opponents}
-			response= jsonify(response_text)
+		# Next check if env passed in
+
+		if request.args.get(arg2)=='production' or request.args.get(arg2)=='sandbox':
+			env = request.args.get(arg2)
+
+			stubhub = stubhhub_object(env)
+			# Get games
+			try:
+
+				ids_dates, ids_opponents = stubhub.get_team_games(teamName)
+				response_text = {"num_games":len(ids_dates),"dates":ids_dates, "opponents": ids_opponents}
+				response= jsonify(response_text)
 
 
-		except Exception as e:
-			response = error_2(arg)
+			except Exception as e:
+				response = error_2(arg1)
+
+		else:
+			response = error_1(arg2)
 
 	else:
 
-		response = error_1(arg)
+		response = error_1(arg1)
 
 	return response
 

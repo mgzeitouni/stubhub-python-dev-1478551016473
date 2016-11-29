@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 #import numpy as np
 #from scipy.stats import norm, mode
 #from datetime import timedelta
-#import traceback
+import traceback
 import logging
 #import os.path
 #import dateutil.parser as dparser
@@ -46,47 +46,59 @@ URL = PROD_URL
 cache = {}
 
 def req(full_url, headers, params, req_type='GET', use_cache=True):
+   global cache
+  # print cache
    cache_key = str(full_url) + str(headers) + str(params) + str(req_type)
    if use_cache and (cache_key in cache):
+     #  print ("-------------CACHE KEY:-------- %s" %cache)
        return cache[cache_key]
   # print "Request:", full_url, headers, params, req_type
-   response = None
-   
-   if req_type == 'GET':
-       response = requests.get(full_url, headers=headers, params=params)
-   elif req_type == 'POST':
-               
-#        logging.basicConfig() 
-#        logging.getLogger().setLevel(logging.DEBUG)
-#        requests_log = logging.getLogger("requests.packages.urllib3")
-#        requests_log.setLevel(logging.DEBUG)
-#        requests_log.propagate = True
-#       pdb.set_trace()
-       response = requests.post(full_url, headers=headers, data=params)
-   elif req_type == 'PUT':
-       #import pdb; pdb.set_trace()
-       response = requests.put(full_url, headers=headers, data=json.dumps(params))
-   elif req_type == 'DELETE':
-       response = requests.delete(full_url, headers=headers, params=params)
    else:
-       return None
-   #pdb.set_trace()
- #  print response.json()
-  # import pdb; pdb.set_trace()
-   cache[cache_key] = response
-   return cache[cache_key]
+     response = None
+     
+     if req_type == 'GET':
+         response = requests.get(full_url, headers=headers, params=params)
+     elif req_type == 'POST':
+                 
+         logging.basicConfig() 
+         logging.getLogger().setLevel(logging.DEBUG)
+         requests_log = logging.getLogger("requests.packages.urllib3")
+         requests_log.setLevel(logging.DEBUG)
+         requests_log.propagate = True
 
 
-def login(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, base_url=URL):
+         response = requests.post(full_url, headers=headers, data=params)
+     elif req_type == 'PUT':
+         #import pdb; pdb.set_trace()
+         response = requests.put(full_url, headers=headers, data=json.dumps(params))
+     elif req_type == 'DELETE':
+         response = requests.delete(full_url, headers=headers, params=params)
+     else:
+         return None
+     #pdb.set_trace()
+   #  print response.json()
+    # import pdb; pdb.set_trace()
+     cache[cache_key] = response
+     #print ("-------------NEW REQUEST:-------- %s" %cache)
+     return cache[cache_key]
+
+
+def login(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, env='sandbox'):
    headers = {'Content-Type': 'application/x-www-form-urlencoded',
               'Authorization': 'Basic %s' % (basic_auth),
               }
-
+   if env =='production':  
+       scope = 'PRODUCTION'
+       base_url = PROD_URL
+   else:
+       scope = 'SANDBOX'
+       base_url = SANDBOX_URL  
+          
    params = {
        'grant_type': 'password',
        'username': username,
        'password': password,
-       'scope': 'PRODUCTION'
+       'scope': scope
    }
   
    return req(full_url='%s/login' % (base_url), headers=headers, params=params, req_type='POST')
@@ -97,19 +109,25 @@ class Stubhub():
        return app_token
 
     @staticmethod
-    def get_user_token(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, base_url=URL):
-       return login(basic_auth=basic_auth, username=username, password=password, base_url=base_url).json()[
+    def get_user_token(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, env='sandbox'):
+       if env =='production':  
+          base_url = PROD_URL
+       else:
+          base_url = SANDBOX_URL
+       print base_url
+       return login(basic_auth=basic_auth, username=username, password=password, env = env).json()[
            'access_token']
 
     @staticmethod
-    def get_user_id(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, base_url=URL):
-        return login(basic_auth=basic_auth, username=username, password=password, base_url=base_url).headers[
+    def get_user_id(basic_auth=BASIC_AUTH, username=USERNAME, password=PASSWORD, env='sandbox'):
+        return login(basic_auth=basic_auth, username=username, password=password, env = env).headers[
             'X-StubHub-User-GUID']
 
-    def __init__(self, app_token, user_token, user_id):
+    def __init__(self, app_token, user_token, user_id, env):
         self.app_token = app_token
         self.user_token = user_token
         self.user_id = user_id
+        self.env = env
 
     def send_req(self, url, token_type='USER', req_type='GET', headers=None, params=None, use_cache=False):
         token = self.user_token if token_type == 'USER' else self.app_token
@@ -169,8 +187,7 @@ class Stubhub():
         params = {'name': team, 'parking': False, 'start': 0, 'limit':500}
         response = self.send_req('/search/catalog/events/v3', token_type='APP',req_type='GET', params=params).json()
         #pdb.set_trace()
-        print team
-        print response
+
        
         events = response['events']
         
@@ -479,16 +496,18 @@ if __name__ == '__main__':
     
     try:
         app_token = Stubhub.get_app_token(app_token=app_token)
-        user_token = Stubhub.get_user_token(basic_auth=basic_auth, username=username, password=password)
-        user_id = Stubhub.get_user_id(basic_auth=basic_auth, username=username, password=password)
+        #user_token = Stubhub.get_user_token(basic_auth=basic_auth, username=username, password=password, env='production')
+        #pdb.set_trace()
+        #user_id = Stubhub.get_user_id(basic_auth=basic_auth, username=username, password=password, env='production')
+        #pdb.set_trace()
        # print user_token
-        stubhub = Stubhub(app_token=app_token, user_token=user_token, user_id=user_id)
+        #stubhub = Stubhub(app_token=app_token, user_token=user_token, user_id=user_id, env='production')
        # print stubhub.user_id
       #  print stubhub.user_token
         #x= stubhub.get_sales()
       #  print x
-       # ids_dates, ids_opponents = stubhub.get_team_games('New York Mets')
-      #  print ids_dates
+        #ids_dates, ids_opponents = stubhub.get_team_games('New York Mets')
+        #print ids_dates
        # print stubhub.get_event_inventory(9445062)
 
        # print stubhub.get_other_listing(1196917513)
